@@ -424,7 +424,7 @@ export default function NewCommissionPage() {
     anchor.href = url;
     const safeAddress = input.propertyAddress.trim().replace(/[<>:"/\\|?*]+/g, "-").replace(/\s+/g, " ") || "commission";
     const date = new Intl.DateTimeFormat("en-CA", { timeZone: "Pacific/Auckland" }).format(new Date());
-    anchor.download = `${safeAddress} - commission calculator - ${date}.pdf`;
+    anchor.download = `${safeAddress} - commission statement - ${date}.pdf`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
