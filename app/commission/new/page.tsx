@@ -37,16 +37,16 @@ type CropSelection = { x: number; y: number; width: number; height: number };
 
 function MoneyReadout({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-1.5 text-sm">
-      <span className="text-slate-500">{label}</span>
-      <span className="font-semibold text-slate-900">{formatMoney(value)}</span>
+    <div className="flex items-center justify-between gap-4 border-b border-slate-200 py-3 text-sm last:border-0">
+      <span className="font-medium text-slate-600">{label}</span>
+      <span className="text-base font-bold tabular-nums text-slate-950">{formatMoney(value)}</span>
     </div>
   );
 }
 
 function BreakdownRow({ label, formula, value }: { label: string; formula: string; value: number }) {
   return (
-    <div className="grid gap-2 border-b border-slate-100 py-3 last:border-0 md:grid-cols-[1.1fr_1.6fr_0.8fr]">
+    <div className="grid gap-2 border-b border-slate-200 py-3.5 last:border-0 md:grid-cols-[1.1fr_1.6fr_0.8fr]">
       <span className="text-sm font-semibold text-slate-800">{label}</span>
       <span className="text-sm text-slate-500">{formula}</span>
       <span className="text-right text-sm font-semibold text-slate-950">{formatMoney(value)}</span>
@@ -73,7 +73,7 @@ function TableInput({
     <div className="relative">
       {prefix && <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-2 text-sm text-slate-500">{prefix}</span>}
       <input
-        className={`h-9 w-full rounded-none border-0 py-1 text-sm shadow-none focus:ring-1 ${invalid ? "bg-red-50 ring-1 ring-red-500" : "bg-amber-50"} ${prefix ? "pl-6" : "px-2"} ${suffix ? "pr-7" : ""}`}
+        className={`h-10 w-full rounded-md border py-1 text-sm shadow-none focus:ring-1 ${invalid ? "border-red-500 bg-red-50 ring-1 ring-red-500" : "border-slate-200 bg-white"} ${prefix ? "pl-6" : "px-2"} ${suffix ? "pr-7" : ""}`}
         inputMode={inputMode}
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -104,7 +104,7 @@ function DraftTableInput({
     <div className="relative">
       {prefix && <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-2 text-sm text-slate-500">{prefix}</span>}
       <input
-        className={`h-9 w-full rounded-none border-0 py-1 text-sm shadow-none focus:ring-1 ${invalid ? "bg-red-50 ring-1 ring-red-500" : "bg-amber-50"} ${prefix ? "pl-6" : "px-2"} ${suffix ? "pr-7" : ""}`}
+        className={`h-10 w-full rounded-md border py-1 text-sm shadow-none focus:ring-1 ${invalid ? "border-red-500 bg-red-50 ring-1 ring-red-500" : "border-slate-200 bg-white"} ${prefix ? "pl-6" : "px-2"} ${suffix ? "pr-7" : ""}`}
         inputMode={inputMode}
         value={draft}
         onChange={(event) => {
@@ -120,7 +120,7 @@ function DraftTableInput({
 function ExcelSection({ title }: { title: string }) {
   return (
     <tr>
-      <td className="bg-slate-100 px-3 py-2 text-sm font-semibold text-harcourts-navy" colSpan={4}>
+      <td className="border-y border-slate-300 bg-slate-200 px-3 py-2.5 text-xs font-bold uppercase text-slate-700" colSpan={4}>
         {title}
       </td>
     </tr>
@@ -143,11 +143,11 @@ function PercentageTableRow({
   baseAmountReadOnly?: boolean;
 }) {
   return (
-    <tr className="border-b border-slate-200">
+    <tr className="border-b border-slate-200 bg-white">
       <td className="px-3 py-1.5 text-sm font-medium text-slate-800">{label ? `${label} - ${item.description}` : item.description}</td>
       <td className="px-2 py-1.5">
         {baseAmountReadOnly ? (
-          <div className="flex h-9 items-center bg-slate-50 px-2 text-sm text-slate-700">{formatMoney(baseAmountCents)}</div>
+          <div className="flex h-10 items-center rounded-md border border-slate-200 bg-slate-100 px-2 text-sm text-slate-700">{formatMoney(baseAmountCents)}</div>
         ) : (
           <DraftTableInput initialValue={centsToInput(baseAmountCents)} inputMode="decimal" prefix="$" onChange={(value) => onChange({ baseAmountCents: dollarsToCents(value) })} />
         )}
@@ -172,11 +172,11 @@ function MoneyTableRow({
   amountReadOnly?: boolean;
 }) {
   return (
-    <tr className="border-b border-slate-200">
+    <tr className="border-b border-slate-200 bg-white">
       <td className="px-3 py-1.5 text-sm font-medium text-slate-800">{label || item.description}</td>
       <td className="px-2 py-1.5">
         {amountReadOnly ? (
-          <div className="flex h-9 items-center bg-slate-50 px-2 text-sm text-slate-700">{formatMoney(item.amountCents)}</div>
+          <div className="flex h-10 items-center rounded-md border border-slate-200 bg-slate-100 px-2 text-sm text-slate-700">{formatMoney(item.amountCents)}</div>
         ) : (
           <DraftTableInput initialValue={centsToInput(item.amountCents)} inputMode="decimal" prefix="$" onChange={(value) => onChange({ amountCents: dollarsToCents(value) })} />
         )}
@@ -189,17 +189,17 @@ function MoneyTableRow({
 
 function TotalTableRow({ label, value, strong = false }: { label: string; value: number; strong?: boolean }) {
   return (
-    <tr className={strong ? "border-b border-slate-300 bg-sky-50" : "border-b border-slate-200 bg-slate-50"}>
-      <td className="px-3 py-2 text-sm font-semibold text-harcourts-navy" colSpan={3}>
+    <tr className={strong ? "border-y-2 border-harcourts-navy bg-harcourts-navy" : "border-y border-slate-300 bg-slate-100"}>
+      <td className={`px-3 py-3 text-sm font-bold ${strong ? "text-white" : "text-slate-800"}`} colSpan={3}>
         {label}
       </td>
-      <td className="px-3 py-2 text-right text-sm font-bold text-harcourts-navy">{formatMoney(value)}</td>
+      <td className={`px-3 py-3 text-right text-base font-bold tabular-nums ${strong ? "text-white" : "text-harcourts-navy"}`}>{formatMoney(value)}</td>
     </tr>
   );
 }
 
 function SheetSection({ children }: { children: React.ReactNode }) {
-  return <section className="overflow-hidden border-y border-slate-200 bg-white">{children}</section>;
+  return <section className="overflow-hidden rounded-md border border-slate-300 bg-white shadow-sm">{children}</section>;
 }
 
 export default function NewCommissionPage() {
@@ -479,8 +479,8 @@ export default function NewCommissionPage() {
         </div>
       )}
 
-      <div className="grid w-full gap-6 px-6 py-6 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
-        <div className="grid gap-5">
+      <div className="grid w-full gap-0 lg:grid-cols-[minmax(0,3fr)_minmax(360px,2fr)]">
+        <div className="grid gap-5 bg-slate-50 px-5 py-6 lg:min-h-[calc(100vh-73px)] lg:px-8">
           <SheetSection>
             <div>
               <table className="w-full table-fixed border-collapse text-left">
@@ -895,7 +895,7 @@ export default function NewCommissionPage() {
           </SheetSection>
         </div>
 
-        <aside className="grid h-fit gap-5 lg:sticky lg:top-24">
+        <aside className="grid h-fit gap-5 bg-slate-200/80 px-5 py-6 lg:sticky lg:top-[73px] lg:px-7">
           <SheetSection>
             <div className="p-5">
               <h2 className="mb-4 text-lg font-semibold text-harcourts-navy">Live Summary</h2>
