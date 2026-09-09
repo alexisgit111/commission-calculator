@@ -3,32 +3,39 @@ import type { CommissionInput, CommissionResult } from "@/lib/commission/types";
 import { formatMoney, formatPercent, multiplyCents, percent } from "@/lib/commission/money";
 
 const styles = StyleSheet.create({
-  page: { padding: 34, fontSize: 10, color: "#001D4A", fontFamily: "Helvetica" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 },
+  page: { padding: 28, fontSize: 9, color: "#001D4A", fontFamily: "Helvetica" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 5 },
   headerCopy: { flex: 1, paddingRight: 16 },
-  logo: { width: 128, height: 67, objectFit: "contain" },
-  title: { fontSize: 24, fontWeight: 700, marginBottom: 5 },
+  logo: { width: 104, height: 55, objectFit: "contain" },
+  title: { fontSize: 20, fontWeight: 700, marginBottom: 3 },
   property: { color: "#334155" },
-  propertyLine: { marginBottom: 3 },
-  section: { marginTop: 12 },
-  sectionTitle: { borderBottom: "2 solid #001D4A", fontSize: 18, fontWeight: 700, marginBottom: 6, paddingBottom: 4 },
-  groupTitle: { color: "#475569", fontSize: 11, fontWeight: 700, marginTop: 5, paddingBottom: 2 },
-  row: { flexDirection: "row", alignItems: "center", minHeight: 24, paddingHorizontal: 5 },
+  propertyLine: { marginBottom: 2 },
+  section: { marginTop: 7 },
+  sectionTitle: { borderBottom: "2 solid #001D4A", fontSize: 13, fontWeight: 700, marginBottom: 3, paddingBottom: 2 },
+  compactTitle: { color: "#001D4A", fontSize: 10, fontWeight: 700, marginBottom: 2 },
+  groupTitle: { color: "#475569", fontSize: 9, fontWeight: 700, marginTop: 3, paddingBottom: 1 },
+  row: { flexDirection: "row", alignItems: "center", minHeight: 18, paddingHorizontal: 4 },
   alternateRow: { backgroundColor: "#E0F4FC" },
-  label: { flex: 1.25, fontSize: 11 },
-  subLabel: { flex: 1.25, fontSize: 10, paddingLeft: 14 },
-  detail: { flex: 1, color: "#475569", fontSize: 9, textAlign: "right" },
-  amount: { width: 110, fontSize: 11, fontWeight: 700, textAlign: "right" },
-  totalRow: { borderTop: "2 solid #001D4A", marginTop: 3, paddingTop: 4 },
-  footnote: { backgroundColor: "#E0F4FC", fontSize: 10, fontWeight: 700, marginTop: 7, padding: 6, textAlign: "right" },
+  label: { flex: 1.25, fontSize: 9 },
+  subLabel: { flex: 1.25, fontSize: 8, paddingLeft: 12 },
+  detail: { flex: 1, color: "#475569", fontSize: 8, textAlign: "right" },
+  amount: { width: 90, fontSize: 9, fontWeight: 700, textAlign: "right" },
+  totalRow: { borderTop: "2 solid #001D4A", marginTop: 2, paddingTop: 2 },
+  footnote: { backgroundColor: "#E0F4FC", fontSize: 8, fontWeight: 700, marginTop: 4, padding: 4, textAlign: "right" },
   evidenceGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   evidenceCard: { border: "1 solid #CBD5E1", padding: 5, width: "48%" },
   evidenceImage: { height: 105, objectFit: "contain", width: "100%" },
   evidenceCaption: { color: "#475569", fontSize: 8, marginTop: 3 },
-  signatureRow: { flexDirection: "row", gap: 20, marginTop: 24 },
+  breakdownHeader: { flexDirection: "row", backgroundColor: "#001D4A", color: "#FFFFFF", minHeight: 17, alignItems: "center", paddingHorizontal: 4 },
+  breakdownRow: { flexDirection: "row", minHeight: 18, alignItems: "center", paddingHorizontal: 4, borderBottom: "1 solid #E2E8F0" },
+  breakdownAgent: { flex: 1.35, fontSize: 7.5 },
+  breakdownAmount: { width: 68, fontSize: 7.5, textAlign: "right" },
+  breakdownTotal: { width: 74, fontSize: 7.5, fontWeight: 700, textAlign: "right" },
+  breakdownHeaderText: { color: "#FFFFFF", fontSize: 7.5, fontWeight: 700 },
+  signatureRow: { flexDirection: "row", gap: 20, marginTop: 12 },
   signatureBox: { flex: 1 },
-  signatureLine: { borderBottom: "1 solid #64748B", height: 28, marginBottom: 5 },
-  signatureLabel: { color: "#475569", fontSize: 9, fontWeight: 700 }
+  signatureLine: { borderBottom: "1 solid #64748B", height: 20, marginBottom: 4 },
+  signatureLabel: { color: "#475569", fontSize: 8, fontWeight: 700 }
 });
 
 function labelWithPercentage(label: string, rate: string) {
@@ -41,6 +48,18 @@ function StatementRow({ label, detail, value, valueText, alternate = false, tota
       <Text style={indent ? styles.subLabel : styles.label}>{label}</Text>
       <Text style={styles.detail}>{detail || ""}</Text>
       <Text style={styles.amount}>{valueText ?? formatMoney(value)}</Text>
+    </View>
+  );
+}
+
+function AgentBreakdownRow({ payment, alternate = false }: { payment: CommissionResult["agentPayments"][number]; alternate?: boolean }) {
+  return (
+    <View style={[styles.breakdownRow, alternate ? styles.alternateRow : undefined]}>
+      <Text style={styles.breakdownAgent}>{payment.agentName} ({payment.role === "LISTING" ? "Listing" : "Selling"})</Text>
+      <Text style={styles.breakdownAmount}>{formatMoney(payment.commissionBeforeTaxCents)}</Text>
+      <Text style={styles.breakdownAmount}>{formatMoney(payment.gstCents)}</Text>
+      <Text style={styles.breakdownAmount}>-{formatMoney(payment.withholdingTaxCents)}</Text>
+      <Text style={styles.breakdownTotal}>{formatMoney(payment.netPaymentCents)}</Text>
     </View>
   );
 }
@@ -119,22 +138,21 @@ export function CommissionStatementPdf({ input, result }: { input: CommissionInp
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Agent Commission Breakdown</Text>
-          {result.agentPayments.map((payment, index) => (
-            <StatementRow
-              key={`breakdown-${payment.participantId}`}
-              label={`${payment.agentName} (${payment.role === "LISTING" ? "Listing" : "Selling"})`}
-              detail={`Commission ${formatMoney(payment.commissionBeforeTaxCents)} | GST ${formatMoney(payment.gstCents)} | WHT -${formatMoney(payment.withholdingTaxCents)}`}
-              value={payment.netPaymentCents}
-              alternate={index % 2 === 1}
-            />
-          ))}
+          <View style={styles.breakdownHeader}>
+            <Text style={[styles.breakdownAgent, styles.breakdownHeaderText]}>Agent</Text>
+            <Text style={[styles.breakdownAmount, styles.breakdownHeaderText]}>Commission</Text>
+            <Text style={[styles.breakdownAmount, styles.breakdownHeaderText]}>GST</Text>
+            <Text style={[styles.breakdownAmount, styles.breakdownHeaderText]}>WHT</Text>
+            <Text style={[styles.breakdownTotal, styles.breakdownHeaderText]}>Total</Text>
+          </View>
+          {result.agentPayments.map((payment, index) => <AgentBreakdownRow key={`breakdown-${payment.participantId}`} payment={payment} alternate={index % 2 === 1} />)}
           {combinedAgentCommissions.map((agent) => (
             <StatementRow key={`combined-${agent.agentName}`} label={`${agent.agentName} Total Commission`} detail="Listing + Selling" value={agent.commissionCents} total />
           ))}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Office Split</Text>
+          <Text style={styles.compactTitle}>Office Split</Text>
           <StatementRow label="Office Share" value={result.totalCompanyCommissionCents} />
           {adminFeeCents !== 0 && <StatementRow label="Admin Fee" value={adminFeeCents} indent alternate />}
           <StatementRow label="Company Distribution" detail="Office share + Admin Fee" value={companyDistributionCents} alternate total />
