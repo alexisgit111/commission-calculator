@@ -143,7 +143,8 @@ function PercentageTableRow({
   onChange,
   result,
   baseAmountCents = item.baseAmountCents,
-  baseAmountReadOnly = false
+  baseAmountReadOnly = false,
+  showDescription = true
 }: {
   label?: string;
   item: PercentageItem;
@@ -151,10 +152,11 @@ function PercentageTableRow({
   result: number;
   baseAmountCents?: number;
   baseAmountReadOnly?: boolean;
+  showDescription?: boolean;
 }) {
   return (
     <tr className="border-b border-slate-200 bg-white">
-      <td className="px-3 py-1.5 text-sm font-medium text-slate-800">{label ? `${label} - ${item.description}` : item.description}</td>
+      <td className="px-3 py-1.5 text-sm font-medium text-slate-800">{label ? (showDescription === false ? label : `${label} - ${item.description}`) : item.description}</td>
       <td className="px-2 py-1.5">
         {baseAmountReadOnly ? (
           <div className="flex h-10 items-center rounded-md border border-slate-200 bg-slate-100 px-2 text-sm text-slate-700">{formatMoney(baseAmountCents)}</div>
@@ -584,6 +586,7 @@ export default function NewCommissionPage() {
                       key={item.id}
                       label="Gross Commission"
                       item={item}
+                      showDescription={false}
                       baseAmountCents={item.id === input.grossItems[1]?.id ? Math.max(input.salePriceCents - (input.grossItems[0]?.baseAmountCents ?? 0), 0) : item.baseAmountCents}
                       baseAmountReadOnly={item.id === input.grossItems[1]?.id}
                       result={Math.round(
@@ -608,7 +611,6 @@ export default function NewCommissionPage() {
                   {input.discounts.map((item) => (
                     <PercentageTableRow
                       key={item.id}
-                      label="Commission Discount"
                       item={item}
                       baseAmountCents={item.baseAmountCents || result.grossCommissionCents}
                       baseAmountReadOnly={item.baseAmountCents === 0}

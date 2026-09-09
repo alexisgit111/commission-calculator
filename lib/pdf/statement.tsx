@@ -11,7 +11,7 @@ const styles = StyleSheet.create({
   property: { color: "#334155" },
   propertyLine: { marginBottom: 2 },
   section: { marginTop: 7 },
-  sectionTitle: { borderBottom: "2 solid #001D4A", fontSize: 13, fontWeight: 700, marginBottom: 3, paddingBottom: 2 },
+  sectionTitle: { borderBottom: "1 solid #001D4A", fontSize: 13, fontWeight: 700, marginBottom: 3, paddingBottom: 2 },
   compactTitle: { color: "#001D4A", fontSize: 10, fontWeight: 700, marginBottom: 2 },
   groupTitle: { color: "#475569", fontSize: 9, fontWeight: 700, marginTop: 3, paddingBottom: 1 },
   row: { flexDirection: "row", alignItems: "center", minHeight: 18, paddingHorizontal: 4 },
@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
   subLabel: { flex: 1.25, fontSize: 8, paddingLeft: 12 },
   detail: { flex: 1, color: "#475569", fontSize: 8, textAlign: "right" },
   amount: { width: 90, fontSize: 9, fontWeight: 700, textAlign: "right" },
-  totalRow: { borderTop: "2 solid #001D4A", marginTop: 2, paddingTop: 2 },
+  totalRow: { borderTop: "1 solid #001D4A", marginTop: 2, paddingTop: 2 },
   footnote: { backgroundColor: "#E0F4FC", fontSize: 8, fontWeight: 700, marginTop: 4, padding: 4, textAlign: "right" },
   evidenceGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   evidenceCard: { border: "1 solid #CBD5E1", padding: 5, width: "48%" },
@@ -108,11 +108,11 @@ export function CommissionStatementPdf({ input, result }: { input: CommissionInp
             if (!item.description.trim()) return null;
             const baseAmountCents = index === 1 ? Math.max(input.salePriceCents - firstGrossBaseCents, 0) : item.baseAmountCents;
             const value = multiplyCents(baseAmountCents, item.percentage);
-            return value === 0 ? null : <StatementRow key={item.id} label={labelWithPercentage(`Gross Commission - ${item.description}`, item.percentage)} value={value} />;
+            return value === 0 ? null : <StatementRow key={item.id} label={labelWithPercentage("Gross Commission", item.percentage)} value={value} />;
           })}
           <StatementRow label="Total Gross Commission" value={result.grossCommissionCents} alternate total />
           {input.plusItems.filter((item) => item.description.trim() && item.amountCents !== 0).map((item, index) => <StatementRow key={item.id} label={`Plus - ${item.description}`} value={item.amountCents} indent alternate={index % 2 === 0} />)}
-          {input.discounts.filter((item) => item.description.trim() && multiplyCents(item.baseAmountCents || result.grossCommissionCents, item.percentage) !== 0).map((item) => <StatementRow key={item.id} label={labelWithPercentage(`Minus - ${item.description}`, item.percentage)} value={-multiplyCents(item.baseAmountCents || result.grossCommissionCents, item.percentage)} indent />)}
+          {input.discounts.filter((item) => item.description.trim() && multiplyCents(item.baseAmountCents || result.grossCommissionCents, item.percentage) !== 0).map((item) => <StatementRow key={item.id} label={labelWithPercentage(item.description, item.percentage)} value={-multiplyCents(item.baseAmountCents || result.grossCommissionCents, item.percentage)} indent />)}
           {input.minusItems.filter((item) => item.description.trim() && item.amountCents !== 0).map((item) => <StatementRow key={item.id} label={`Minus - ${item.description}`} value={-item.amountCents} indent />)}
           <StatementRow label="Total Received Commission" value={result.totalReceivedCommissionCents} alternate total />
           {input.referrals.filter((item) => item.recipient.trim() && multiplyCents(item.baseAmountCents ?? result.netCommissionCents, item.percentage) !== 0).map((item) => <StatementRow key={item.id} label={labelWithPercentage(`Referral Fee - ${item.recipient}`, item.percentage)} value={-multiplyCents(item.baseAmountCents ?? result.netCommissionCents, item.percentage)} indent />)}
