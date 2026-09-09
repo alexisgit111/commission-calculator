@@ -198,8 +198,9 @@ function TotalTableRow({ label, value, strong = false }: { label: string; value:
   );
 }
 
-function SheetSection({ children }: { children: React.ReactNode }) {
-  return <section className="overflow-hidden rounded-md border border-slate-300 bg-white shadow-sm">{children}</section>;
+function SheetSection({ children, tone = "default" }: { children: React.ReactNode; tone?: "default" | "evidence" }) {
+  const toneClass = tone === "evidence" ? "border-amber-300 bg-amber-50" : "border-slate-300 bg-white";
+  return <section className={`overflow-hidden rounded-md border shadow-sm ${toneClass}`}>{children}</section>;
 }
 
 export default function NewCommissionPage() {
@@ -219,6 +220,8 @@ export default function NewCommissionPage() {
   const sellingTeamInvalid = !validationByKey.get("selling-team")?.balanced;
   const propertyAddressInvalid = !input.propertyAddress.trim();
   const salePriceInvalid = input.salePriceCents <= 0;
+  const adminFeeCents = input.plusItems.find((item) => item.description === "Admin Fee")?.amountCents ?? 0;
+  const companyDistributionCents = result.totalCompanyCommissionCents + adminFeeCents;
   const ourOfficePlusItems: MoneyItem[] = [
     { id: "our-office-operational-fee", description: "Operational Fee", amountCents: input.conjunctionMinusItems.find((item) => item.description === "Operational Fee")?.amountCents ?? 0 },
     { id: "our-office-marketing-fee", description: "Marketing Fee", amountCents: input.plusItems.find((item) => item.description === "Marketing Fee")?.amountCents ?? 0 },
@@ -815,18 +818,29 @@ export default function NewCommissionPage() {
                   </div>
                 );
               })}
+              <table className="w-full table-fixed border-collapse text-left">
+                <tbody>
+                  <TotalTableRow label="Agent Total Distribution" value={result.totalAgentCommissionCents} strong />
+                  <tr className="border-y border-slate-300 bg-slate-100">
+                    <td className="w-[40%] px-3 py-3 text-sm font-bold text-slate-800">Company Distribution</td>
+                    <td className="w-[25%] px-3 py-3 text-sm text-slate-600">Office splits + Admin Fee</td>
+                    <td className="w-[17%] px-3 py-3 text-right text-sm font-semibold text-slate-700">{formatMoney(adminFeeCents)}</td>
+                    <td className="w-[18%] px-3 py-3 text-right text-base font-bold tabular-nums text-harcourts-navy">{formatMoney(companyDistributionCents)}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </SheetSection>
 
-          <SheetSection>
+          <SheetSection tone="evidence">
             <div className="p-5">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-lg font-semibold text-harcourts-navy">Evidence</h2>
+                <h2 className="text-lg font-semibold text-amber-950">Evidence</h2>
                 <div className="flex items-center gap-2">
-                  <button className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700" onClick={captureScreenshot}>
+                  <button className="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-900" onClick={captureScreenshot}>
                     <MonitorUp className="h-4 w-4" /> Capture Screen
                   </button>
-                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-900">
                     <Upload className="h-4 w-4" /> Upload Screenshots
                     <input
                       className="sr-only"
@@ -847,9 +861,9 @@ export default function NewCommissionPage() {
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {input.evidence.map((evidence) => (
-                    <div className="relative border border-slate-200" key={evidence.id}>
-                      <img alt={evidence.fileName} className="h-32 w-full object-contain bg-slate-50" src={evidence.fileUrl} />
-                      <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-2 py-2">
+                    <div className="relative border border-amber-200 bg-white" key={evidence.id}>
+                      <img alt={evidence.fileName} className="h-32 w-full object-contain bg-amber-50" src={evidence.fileUrl} />
+                      <div className="flex items-center justify-between gap-2 border-t border-amber-200 px-2 py-2">
                         <span className="min-w-0 truncate text-xs text-slate-600">{evidence.fileName}</span>
                         <button className="grid h-7 w-7 shrink-0 place-items-center text-slate-600" title={`Remove ${evidence.fileName}`} onClick={() => removeEvidence(evidence.id)}>
                           <Trash2 className="h-4 w-4" />
@@ -916,7 +930,7 @@ export default function NewCommissionPage() {
               <MoneyReadout label="Net Commission" value={result.netCommissionCents} />
               <MoneyReadout label="Franchise Fee" value={result.franchiseFeeCents} />
               <MoneyReadout label="Agent Distribution" value={result.totalAgentCommissionCents} />
-              <MoneyReadout label="Company Distribution" value={result.totalCompanyCommissionCents} />
+              <MoneyReadout label="Company Distribution" value={companyDistributionCents} />
               <div className="mt-4 bg-slate-50 p-3">
                 <MoneyReadout label="Final Difference" value={result.finalDifferenceCents} />
                 <div className={`mt-2 flex items-center gap-2 text-sm font-semibold ${canApprove ? "text-emerald-700" : "text-red-700"}`}>
@@ -946,7 +960,7 @@ export default function NewCommissionPage() {
               <BreakdownRow label="Internal Referral Fee" formula="(Franchise Fee base - Franchise Fee) x referral percentage" value={result.internalReferralFeeCents} />
               <BreakdownRow label="Available for Split" formula="Net Commission Into Our Office - linked office fees - Franchise Fee - Referral Fee" value={result.commissionAvailableForSplitCents} />
               <BreakdownRow label="Agent Distribution" formula="Listing/Selling pool x team share x fixed agent split" value={result.totalAgentCommissionCents} />
-              <BreakdownRow label="Company Distribution" formula="Company side of each agent split" value={result.totalCompanyCommissionCents} />
+              <BreakdownRow label="Company Distribution" formula="Company side of each agent split + Admin Fee" value={companyDistributionCents} />
             </div>
           </SheetSection>
         </aside>

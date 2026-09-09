@@ -43,6 +43,8 @@ function StatementRow({ label, detail, value, alternate = false, total = false, 
 
 export function CommissionStatementPdf({ input, result }: { input: CommissionInput; result: CommissionResult }) {
   const firstGrossBaseCents = input.grossItems[0]?.baseAmountCents ?? 0;
+  const adminFeeCents = input.plusItems.find((item) => item.description === "Admin Fee")?.amountCents ?? 0;
+  const companyDistributionCents = result.totalCompanyCommissionCents + adminFeeCents;
   const logoSource = typeof window === "undefined" ? "/brand/harcourts-golden-links.png" : new URL("/brand/harcourts-golden-links.png", window.location.origin).toString();
 
   return (
@@ -96,11 +98,14 @@ export function CommissionStatementPdf({ input, result }: { input: CommissionInp
               </View>
             );
           })}
+          <StatementRow label="Agent Total Distribution" value={result.totalAgentCommissionCents} alternate total />
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Office Split</Text>
           <StatementRow label="Office Share" value={result.totalCompanyCommissionCents} />
+          {adminFeeCents !== 0 && <StatementRow label="Admin Fee" value={adminFeeCents} indent alternate />}
+          <StatementRow label="Company Distribution" detail="Office share + Admin Fee" value={companyDistributionCents} alternate total />
           <Text style={styles.footnote}>100.00% of {formatMoney(result.commissionAvailableForSplitCents)} Commission Available for Split</Text>
         </View>
       </Page>

@@ -21,15 +21,17 @@ function normalizeRate(value: string | number | null): string {
   return String(value);
 }
 
-export const agents: AgentSeed[] = agentSplitData.map((agent) => ({
-  ...agent,
-  withholdingTaxRate: normalizeRate(agent.withholdingTaxRate),
-  gstRate: normalizeRate(agent.gstRate),
-  residentialAgentSplit: normalizeRate(agent.residentialAgentSplit),
-  residentialCompanySplit: normalizeRate(agent.residentialCompanySplit),
-  commercialLeaseAgentSplit: normalizeRate(agent.commercialLeaseAgentSplit),
-  commercialLeaseCompanySplit: normalizeRate(agent.commercialLeaseCompanySplit)
-}));
+export const agents: AgentSeed[] = agentSplitData
+  .map((agent) => ({
+    ...agent,
+    withholdingTaxRate: normalizeRate(agent.withholdingTaxRate),
+    gstRate: normalizeRate(agent.gstRate),
+    residentialAgentSplit: normalizeRate(agent.residentialAgentSplit),
+    residentialCompanySplit: normalizeRate(agent.residentialCompanySplit),
+    commercialLeaseAgentSplit: normalizeRate(agent.commercialLeaseAgentSplit),
+    commercialLeaseCompanySplit: normalizeRate(agent.commercialLeaseCompanySplit)
+  }))
+  .sort((left, right) => left.name.localeCompare(right.name));
 
 export function snapshotAgent(agentId: string): AgentSettingsSnapshot {
   const agent = agents.find((item) => item.id === agentId) ?? agents[0];
