@@ -499,7 +499,17 @@ export default function NewCommissionPage() {
                   <tr className="border-b border-slate-200">
                     <td className="px-3 py-1.5 text-sm font-semibold text-slate-800">Listing Agent</td>
                     <td className="px-2 py-1.5">
-                      <DraftTableInput initialValue={rateToInput(input.listingPercentage)} inputMode="decimal" suffix="%" invalid={transactionSplitInvalid} onChange={(value) => updateInput({ listingPercentage: inputToRate(value) })} />
+                      <DraftTableInput
+                        initialValue={rateToInput(input.listingPercentage)}
+                        inputMode="decimal"
+                        suffix="%"
+                        invalid={transactionSplitInvalid}
+                        onChange={(value) => {
+                          const listingPercentage = inputToRate(value);
+                          const sellingPercentage = String(Math.max(0, 1 - Number(listingPercentage)));
+                          updateInput({ listingPercentage, sellingPercentage });
+                        }}
+                      />
                     </td>
                     <td className="px-2 py-1.5">
                       <TableInput value={listingHeaderTeam} onChange={setListingHeaderTeam} />
@@ -508,7 +518,9 @@ export default function NewCommissionPage() {
                   <tr>
                     <td className="px-3 py-1.5 text-sm font-semibold text-slate-800">Selling Agent</td>
                     <td className="px-2 py-1.5">
-                      <DraftTableInput initialValue={rateToInput(input.sellingPercentage)} inputMode="decimal" suffix="%" invalid={transactionSplitInvalid} onChange={(value) => updateInput({ sellingPercentage: inputToRate(value) })} />
+                      <div className={`flex h-10 items-center rounded-md border px-2 text-sm font-medium ${transactionSplitInvalid ? "border-red-500 bg-red-50 text-red-800" : "border-slate-200 bg-slate-100 text-slate-700"}`}>
+                        {rateToInput(input.sellingPercentage)}%
+                      </div>
                     </td>
                     <td className="px-2 py-1.5">
                       <TableInput value={sellingHeaderTeam} onChange={setSellingHeaderTeam} />
