@@ -69,16 +69,22 @@ export function CommissionStatementPdf({ input, result }: { input: CommissionInp
   const adminFeeCents = input.plusItems.find((item) => item.description === "Admin Fee")?.amountCents ?? 0;
   const companyDistributionCents = result.totalCompanyCommissionCents + adminFeeCents;
   const contributionRatio = result.totalReceivedCommissionCents > 0 ? companyDistributionCents / result.totalReceivedCommissionCents : 0;
+  const totalAgentGstCents = result.agentPayments.reduce((total, payment) => total + payment.gstCents, 0);
+  const totalAgentWhtCents = result.agentPayments.reduce((total, payment) => total + payment.withholdingTaxCents, 0);
+  const totalAgentNetPaymentCents = result.agentPayments.reduce((total, payment) => total + payment.netPaymentCents, 0);
   const combinedAgentCommissions = Array.from(
     result.agentPayments.reduce((totals, payment) => {
       const participant = input.participants.find((item) => item.id === payment.participantId);
       const key = participant?.agent.agentId ?? payment.agentName;
-      const existing = totals.get(key) ?? { agentName: payment.agentName, roles: [] as string[], commissionCents: 0 };
+      const existing = totals.get(key) ?? { agentName: payment.agentName, roles: [] as string[], commissionCents: 0, gstCents: 0, whtCents: 0, netPaymentCents: 0 };
       if (!existing.roles.includes(payment.role)) existing.roles.push(payment.role);
       existing.commissionCents += payment.commissionBeforeTaxCents;
+      existing.gstCents += payment.gstCents;
+      existing.whtCents += payment.withholdingTaxCents;
+      existing.netPaymentCents += payment.netPaymentCents;
       totals.set(key, existing);
       return totals;
-    }, new Map<string, { agentName: string; roles: string[]; commissionCents: number }>()).values()
+    }, new Map<string, { agentName: string; roles: string[]; commissionCents: number; gstCents: number; whtCents: number; netPaymentCents: number }>()).values()
   ).filter((agent) => agent.roles.includes("LISTING") && agent.roles.includes("SELLING"));
   const logoSource = typeof window === "undefined" ? "/brand/harcourts-golden-links.png" : new URL("/brand/harcourts-golden-links.png", window.location.origin).toString();
 
@@ -147,8 +153,21 @@ export function CommissionStatementPdf({ input, result }: { input: CommissionInp
           </View>
           {result.agentPayments.map((payment, index) => <AgentBreakdownRow key={`breakdown-${payment.participantId}`} payment={payment} alternate={index % 2 === 1} />)}
           {combinedAgentCommissions.map((agent) => (
-            <StatementRow key={`combined-${agent.agentName}`} label={`${agent.agentName} Total Commission`} detail="Listing + Selling" value={agent.commissionCents} total />
+            <View style={[styles.breakdownRow, styles.totalRow]} key={`combined-${agent.agentName}`}>
+              <Text style={styles.breakdownAgent}>{agent.agentName} Total</Text>
+              <Text style={styles.breakdownAmount}>{formatMoney(agent.commissionCents)}</Text>
+              <Text style={styles.breakdownAmount}>{formatMoney(agent.gstCents)}</Text>
+              <Text style={styles.breakdownAmount}>-{formatMoney(agent.whtCents)}</Text>
+              <Text style={styles.breakdownTotal}>{formatMoney(agent.netPaymentCents)}</Text>
+            </View>
           ))}
+          <View style={[styles.breakdownRow, styles.alternateRow, styles.totalRow]}>
+            <Text style={styles.breakdownAgent}>Agent Totals</Text>
+            <Text style={styles.breakdownAmount}>{formatMoney(result.totalAgentCommissionCents)}</Text>
+            <Text style={styles.breakdownAmount}>{formatMoney(totalAgentGstCents)}</Text>
+            <Text style={styles.breakdownAmount}>-{formatMoney(totalAgentWhtCents)}</Text>
+            <Text style={styles.breakdownTotal}>{formatMoney(totalAgentNetPaymentCents)}</Text>
+          </View>
         </View>
 
         <View style={styles.section}>
