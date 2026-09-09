@@ -54,6 +54,16 @@ function BreakdownRow({ label, formula, value }: { label: string; formula: strin
   );
 }
 
+function RatioBreakdownRow({ label, formula, value }: { label: string; formula: string; value: number }) {
+  return (
+    <div className="grid gap-2 border-b border-slate-200 py-3.5 last:border-0 md:grid-cols-[1.1fr_1.6fr_0.8fr]">
+      <span className="text-sm font-semibold text-slate-800">{label}</span>
+      <span className="text-sm text-slate-500">{formula}</span>
+      <span className="text-right text-sm font-semibold text-harcourts-navy">{formatPercent(String(value))}</span>
+    </div>
+  );
+}
+
 function TableInput({
   value,
   onChange,
@@ -222,6 +232,18 @@ export default function NewCommissionPage() {
   const salePriceInvalid = input.salePriceCents <= 0;
   const adminFeeCents = input.plusItems.find((item) => item.description === "Admin Fee")?.amountCents ?? 0;
   const companyDistributionCents = result.totalCompanyCommissionCents + adminFeeCents;
+  const contributionRatio = result.totalReceivedCommissionCents > 0 ? companyDistributionCents / result.totalReceivedCommissionCents : 0;
+  const combinedAgentCommissions = Array.from(
+    result.agentPayments.reduce((totals, payment) => {
+      const participant = input.participants.find((item) => item.id === payment.participantId);
+      const key = participant?.agent.agentId ?? payment.agentName;
+      const existing = totals.get(key) ?? { agentName: payment.agentName, roles: [] as string[], commissionCents: 0 };
+      if (!existing.roles.includes(payment.role)) existing.roles.push(payment.role);
+      existing.commissionCents += payment.commissionBeforeTaxCents;
+      totals.set(key, existing);
+      return totals;
+    }, new Map<string, { agentName: string; roles: string[]; commissionCents: number }>()).values()
+  ).filter((agent) => agent.roles.includes("LISTING") && agent.roles.includes("SELLING"));
   const ourOfficePlusItems: MoneyItem[] = [
     { id: "our-office-operational-fee", description: "Operational Fee", amountCents: input.conjunctionMinusItems.find((item) => item.description === "Operational Fee")?.amountCents ?? 0 },
     { id: "our-office-marketing-fee", description: "Marketing Fee", amountCents: input.plusItems.find((item) => item.description === "Marketing Fee")?.amountCents ?? 0 },
@@ -827,6 +849,18 @@ export default function NewCommissionPage() {
                     <td className="w-[17%] px-3 py-3 text-right text-sm font-semibold text-slate-700">{formatMoney(adminFeeCents)}</td>
                     <td className="w-[18%] px-3 py-3 text-right text-base font-bold tabular-nums text-harcourts-navy">{formatMoney(companyDistributionCents)}</td>
                   </tr>
+                  <tr className="border-b border-slate-300 bg-white">
+                    <td className="px-3 py-3 text-sm font-bold text-slate-800">Contribution Ratio</td>
+                    <td className="px-3 py-3 text-sm text-slate-600" colSpan={2}>Company Distribution / Total Received Commission</td>
+                    <td className="px-3 py-3 text-right text-base font-bold tabular-nums text-harcourts-navy">{formatPercent(String(contributionRatio))}</td>
+                  </tr>
+                  {combinedAgentCommissions.map((agent) => (
+                    <tr className="border-b border-sky-200 bg-sky-50" key={`combined-${agent.agentName}`}>
+                      <td className="px-3 py-3 text-sm font-bold text-harcourts-navy">{agent.agentName} Total Commission</td>
+                      <td className="px-3 py-3 text-sm text-slate-600" colSpan={2}>Listing + Selling</td>
+                      <td className="px-3 py-3 text-right text-base font-bold tabular-nums text-harcourts-navy">{formatMoney(agent.commissionCents)}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -931,6 +965,10 @@ export default function NewCommissionPage() {
               <MoneyReadout label="Franchise Fee" value={result.franchiseFeeCents} />
               <MoneyReadout label="Agent Distribution" value={result.totalAgentCommissionCents} />
               <MoneyReadout label="Company Distribution" value={companyDistributionCents} />
+              <div className="flex items-center justify-between gap-4 border-b border-slate-200 py-3 text-sm">
+                <span className="font-medium text-slate-600">Contribution Ratio</span>
+                <span className="text-base font-bold tabular-nums text-harcourts-navy">{formatPercent(String(contributionRatio))}</span>
+              </div>
               <div className="mt-4 bg-slate-50 p-3">
                 <MoneyReadout label="Final Difference" value={result.finalDifferenceCents} />
                 <div className={`mt-2 flex items-center gap-2 text-sm font-semibold ${canApprove ? "text-emerald-700" : "text-red-700"}`}>
@@ -961,6 +999,7 @@ export default function NewCommissionPage() {
               <BreakdownRow label="Available for Split" formula="Net Commission Into Our Office - linked office fees - Franchise Fee - Referral Fee" value={result.commissionAvailableForSplitCents} />
               <BreakdownRow label="Agent Distribution" formula="Listing/Selling pool x team share x fixed agent split" value={result.totalAgentCommissionCents} />
               <BreakdownRow label="Company Distribution" formula="Company side of each agent split + Admin Fee" value={companyDistributionCents} />
+              <RatioBreakdownRow label="Contribution Ratio" formula="Company Distribution / Total Received Commission" value={contributionRatio} />
             </div>
           </SheetSection>
         </aside>
