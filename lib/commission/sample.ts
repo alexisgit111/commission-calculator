@@ -61,3 +61,28 @@ export const sampleCommission: CommissionInput = {
   ],
   evidence: []
 };
+
+export function createBlankCommission(): CommissionInput {
+  return {
+    ...sampleCommission,
+    propertyAddress: "",
+    salePriceCents: 0,
+    settlementDate: "",
+    calculationDate: "",
+    listingPercentage: "0",
+    sellingPercentage: "1",
+    grossItems: sampleCommission.grossItems.map((item) => ({ ...item, baseAmountCents: 0 })),
+    plusItems: sampleCommission.plusItems.map((item) => ({ ...item })),
+    discounts: sampleCommission.discounts.map((item) => ({ ...item, baseAmountCents: 0, percentage: "0" })),
+    minusItems: sampleCommission.minusItems.map((item) => ({ ...item, amountCents: 0 })),
+    officeDeductions: sampleCommission.officeDeductions.map((item) => ({ ...item })),
+    otherPayments: [],
+    referrals: sampleCommission.referrals.map((item) => ({ ...item, percentage: "0" })),
+    conjunctionPlusItems: [],
+    conjunctionMinusItems: sampleCommission.conjunctionMinusItems.map((item) => ({ ...item })),
+    ourOfficePlusItems: [],
+    ourOfficeMinusItems: [],
+    participants: [],
+    evidence: []
+  };
+}

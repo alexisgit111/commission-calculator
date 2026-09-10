@@ -6,7 +6,7 @@ import { Download, MonitorUp, Plus, ShieldCheck, Trash2, Upload } from "lucide-r
 import { agents, snapshotAgent } from "@/lib/agents";
 import { calculateCommission } from "@/lib/commission/calculate";
 import { formatMoney, formatPercent, percent } from "@/lib/commission/money";
-import { sampleCommission } from "@/lib/commission/sample";
+import { createBlankCommission } from "@/lib/commission/sample";
 import type { CommissionInput, EvidenceRecord, MoneyItem, ParticipantInput, PercentageItem } from "@/lib/commission/types";
 import { ValidationRow } from "@/components/ui";
 
@@ -216,7 +216,7 @@ function SheetSection({ children, tone = "default" }: { children: React.ReactNod
 }
 
 export default function NewCommissionPage() {
-  const [input, setInput] = useState<CommissionInput>(sampleCommission);
+  const [input, setInput] = useState<CommissionInput>(createBlankCommission);
   const [listingHeaderTeam, setListingHeaderTeam] = useState("");
   const [sellingHeaderTeam, setSellingHeaderTeam] = useState("");
   const [evidenceError, setEvidenceError] = useState("");
@@ -233,6 +233,9 @@ export default function NewCommissionPage() {
   const sellingTeamInvalid = !validationByKey.get("selling-team")?.balanced;
   const propertyAddressInvalid = !input.propertyAddress.trim();
   const salePriceInvalid = input.salePriceCents <= 0;
+  const listingAgentMissing = input.participants.every((participant) => participant.role !== "LISTING");
+  const sellingAgentMissing = input.participants.every((participant) => participant.role !== "SELLING");
+  const agentsMissing = listingAgentMissing || sellingAgentMissing;
   const adminFeeCents = input.plusItems.find((item) => item.description === "Admin Fee")?.amountCents ?? 0;
   const companyDistributionCents = result.totalCompanyCommissionCents + adminFeeCents;
   const contributionRatio = result.totalReceivedCommissionCents > 0 ? companyDistributionCents / result.totalReceivedCommissionCents : 0;
@@ -297,23 +300,7 @@ export default function NewCommissionPage() {
 
     input.evidence.forEach((evidence) => URL.revokeObjectURL(evidence.fileUrl));
 
-    setInput({
-      ...sampleCommission,
-      propertyAddress: "",
-      salePriceCents: 0,
-      settlementDate: "",
-      calculationDate: "",
-      listingPercentage: "0",
-      sellingPercentage: "1",
-      grossItems: sampleCommission.grossItems.map((item) => ({ ...item, baseAmountCents: 0 })),
-      discounts: sampleCommission.discounts.map((item) => ({ ...item, baseAmountCents: 0, percentage: "0" })),
-      minusItems: sampleCommission.minusItems.map((item) => ({ ...item, amountCents: 0 })),
-      referrals: sampleCommission.referrals.map((item) => ({ ...item, percentage: "0" })),
-      conjunctionPercentage: "0",
-      ourOfficePercentage: "0",
-      internalReferralFeeRate: "0",
-      participants: []
-    });
+    setInput(createBlankCommission());
     setListingHeaderTeam("");
     setSellingHeaderTeam("");
     setEvidenceError("");
@@ -557,6 +544,11 @@ export default function NewCommissionPage() {
                   </tr>
                 </tbody>
               </table>
+              {(propertyAddressInvalid || salePriceInvalid) && (
+                <p className="mt-3 px-3 text-sm font-medium text-red-700">
+                  Admin: complete the Property Address and Sale Price before generating the statement.
+                </p>
+              )}
             </div>
           </SheetSection>
 
@@ -759,6 +751,11 @@ export default function NewCommissionPage() {
           <SheetSection>
             <div className="p-5">
               <h2 className="mb-4 text-lg font-semibold text-harcourts-navy">Commission Split Between Parties</h2>
+              {agentsMissing && (
+                <p className="mb-4 text-sm font-medium text-red-700">
+                  Admin: add at least one Listing Agent and one Selling Agent to complete the split.
+                </p>
+              )}
               {(["LISTING", "SELLING"] as const).map((role) => {
                 const roleParticipants = input.participants.filter((participant) => participant.role === role);
                 const roleLabel = role === "LISTING" ? "Listing" : "Selling";
