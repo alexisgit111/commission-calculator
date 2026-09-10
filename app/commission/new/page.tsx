@@ -223,6 +223,7 @@ export default function NewCommissionPage() {
   const [capturePreview, setCapturePreview] = useState<string | null>(null);
   const [cropStart, setCropStart] = useState<CropPoint | null>(null);
   const [cropSelection, setCropSelection] = useState<CropSelection | null>(null);
+  const [formResetVersion, setFormResetVersion] = useState(0);
   const cropPreviewRef = useRef<HTMLDivElement>(null);
   const result = useMemo(() => calculateCommission(input), [input]);
   const paymentByParticipantId = new Map(result.agentPayments.map((payment) => [payment.participantId, payment]));
@@ -303,8 +304,8 @@ export default function NewCommissionPage() {
       settlementDate: "",
       calculationDate: "",
       listingPercentage: "0",
-      sellingPercentage: "0",
-      grossItems: sampleCommission.grossItems.map((item, index) => ({ ...item, baseAmountCents: index === 0 ? item.baseAmountCents : 0 })),
+      sellingPercentage: "1",
+      grossItems: sampleCommission.grossItems.map((item) => ({ ...item, baseAmountCents: 0 })),
       discounts: sampleCommission.discounts.map((item) => ({ ...item, baseAmountCents: 0, percentage: "0" })),
       minusItems: sampleCommission.minusItems.map((item) => ({ ...item, amountCents: 0 })),
       referrals: sampleCommission.referrals.map((item) => ({ ...item, percentage: "0" })),
@@ -316,6 +317,7 @@ export default function NewCommissionPage() {
     setListingHeaderTeam("");
     setSellingHeaderTeam("");
     setEvidenceError("");
+    setFormResetVersion((version) => version + 1);
   }
 
   function addEvidenceFiles(files: File[]) {
@@ -507,7 +509,7 @@ export default function NewCommissionPage() {
       )}
 
       <div className="grid w-full gap-0 lg:grid-cols-[minmax(0,3fr)_minmax(360px,2fr)]">
-        <div className="grid gap-5 bg-slate-50 px-5 py-6 lg:min-h-[calc(100vh-73px)] lg:px-8">
+        <div className="grid gap-5 bg-slate-50 px-5 py-6 lg:min-h-[calc(100vh-73px)] lg:px-8" key={formResetVersion}>
           <SheetSection>
             <div>
               <table className="w-full table-fixed border-collapse text-left">
