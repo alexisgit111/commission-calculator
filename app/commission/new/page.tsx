@@ -7,7 +7,7 @@ import { agents, snapshotAgent } from "@/lib/agents";
 import { calculateCommission } from "@/lib/commission/calculate";
 import { formatMoney, formatPercent, percent } from "@/lib/commission/money";
 import { createBlankCommission } from "@/lib/commission/sample";
-import type { CommissionInput, EvidenceRecord, MoneyItem, ParticipantInput, PercentageItem } from "@/lib/commission/types";
+import type { AgentSettingsSnapshot, CommissionInput, EvidenceRecord, MoneyItem, ParticipantInput, PercentageItem } from "@/lib/commission/types";
 import { ValidationRow } from "@/components/ui";
 
 function dollarsToCents(value: string) {
@@ -34,6 +34,21 @@ function replaceItem<T extends { id: string }>(items: T[], id: string, patch: Pa
 
 type CropPoint = { x: number; y: number };
 type CropSelection = { x: number; y: number; width: number; height: number };
+type NewAgentForm = {
+  name: string;
+  gstRate: string;
+  withholdingTaxRate: string;
+  agentSplit: string;
+  companySplit: string;
+};
+
+const emptyNewAgentForm: NewAgentForm = {
+  name: "",
+  gstRate: "15",
+  withholdingTaxRate: "20",
+  agentSplit: "70",
+  companySplit: "30"
+};
 
 function MoneyReadout({ label, value }: { label: string; value: number }) {
   return (
@@ -224,6 +239,10 @@ export default function NewCommissionPage() {
   const [cropStart, setCropStart] = useState<CropPoint | null>(null);
   const [cropSelection, setCropSelection] = useState<CropSelection | null>(null);
   const [formResetVersion, setFormResetVersion] = useState(0);
+  const [temporaryAgents, setTemporaryAgents] = useState<AgentSettingsSnapshot[]>([]);
+  const [newAgentTargetId, setNewAgentTargetId] = useState<string | null>(null);
+  const [newAgentForm, setNewAgentForm] = useState<NewAgentForm>(emptyNewAgentForm);
+  const [newAgentError, setNewAgentError] = useState("");
   const cropPreviewRef = useRef<HTMLDivElement>(null);
   const result = useMemo(() => calculateCommission(input), [input]);
   const paymentByParticipantId = new Map(result.agentPayments.map((payment) => [payment.participantId, payment]));
@@ -262,6 +281,17 @@ export default function NewCommissionPage() {
     { id: "internal-office-marketing-fee-refund", description: "Refund Marketing Fee to Agent", amountCents: input.plusItems.find((item) => item.description === "Refund Marketing Fee to Agent")?.amountCents ?? 0 }
   ];
   const canApprove = result.validations.filter((v) => v.critical).every((v) => v.balanced);
+  const agentOptions: AgentSettingsSnapshot[] = [
+    ...agents.map((agent) => ({
+      agentId: agent.id,
+      agentName: agent.name,
+      withholdingTaxRate: agent.withholdingTaxRate,
+      gstRate: agent.gstRate,
+      agentSplit: agent.residentialAgentSplit,
+      companySplit: agent.residentialCompanySplit
+    })),
+    ...temporaryAgents
+  ];
 
   function updateInput(patch: Partial<CommissionInput>) {
     setInput((current) => ({ ...current, ...patch }));
@@ -295,6 +325,39 @@ export default function NewCommissionPage() {
     updateInput({ participants: input.participants.filter((participant) => participant.id !== id) });
   }
 
+  function openNewAgent(targetId: string) {
+    setNewAgentTargetId(targetId);
+    setNewAgentForm(emptyNewAgentForm);
+    setNewAgentError("");
+  }
+
+  function saveNewAgent() {
+    const name = newAgentForm.name.trim();
+    const agentSplit = Number(newAgentForm.agentSplit);
+    const companySplit = Number(newAgentForm.companySplit);
+
+    if (!name) {
+      setNewAgentError("Enter the agent name.");
+      return;
+    }
+    if (agentSplit < 0 || companySplit < 0 || Math.abs(agentSplit + companySplit - 100) > 0.01) {
+      setNewAgentError("Agent split and company split must add up to 100%.");
+      return;
+    }
+
+    const agent: AgentSettingsSnapshot = {
+      agentId: `manual-${Date.now()}`,
+      agentName: name,
+      gstRate: inputToRate(newAgentForm.gstRate),
+      withholdingTaxRate: inputToRate(newAgentForm.withholdingTaxRate),
+      agentSplit: inputToRate(newAgentForm.agentSplit),
+      companySplit: inputToRate(newAgentForm.companySplit)
+    };
+    setTemporaryAgents((current) => [...current, agent].sort((left, right) => left.agentName.localeCompare(right.agentName)));
+    if (newAgentTargetId) updateParticipant(newAgentTargetId, { agent });
+    setNewAgentTargetId(null);
+  }
+
   function clearCalculator() {
     if (!window.confirm("Clear all entered calculator details?")) return;
 
@@ -304,6 +367,7 @@ export default function NewCommissionPage() {
     setListingHeaderTeam("");
     setSellingHeaderTeam("");
     setEvidenceError("");
+    setTemporaryAgents([]);
     setFormResetVersion((version) => version + 1);
   }
 
@@ -490,6 +554,69 @@ export default function NewCommissionPage() {
                   />
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {newAgentTargetId && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-5">
+          <div className="w-full max-w-2xl border border-slate-200 bg-white shadow-xl">
+            <div className="border-b border-slate-200 px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-harcourts-blue">Temporary Agent</p>
+              <h2 className="mt-1 text-xl font-semibold text-harcourts-navy">Add New Agent</h2>
+            </div>
+            <div className="grid gap-4 p-5 sm:grid-cols-2">
+              <label className="grid gap-1.5 text-sm font-semibold text-slate-700 sm:col-span-2">
+                Agent Name
+                <input
+                  autoFocus
+                  className="h-10 rounded-md border border-slate-300 px-3 font-normal outline-none focus:border-harcourts-blue focus:ring-2 focus:ring-sky-100"
+                  value={newAgentForm.name}
+                  onChange={(event) => setNewAgentForm((current) => ({ ...current, name: event.target.value }))}
+                />
+              </label>
+              <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+                GST %
+                <input
+                  className="h-10 rounded-md border border-slate-300 px-3 font-normal outline-none focus:border-harcourts-blue focus:ring-2 focus:ring-sky-100"
+                  inputMode="decimal"
+                  value={newAgentForm.gstRate}
+                  onChange={(event) => setNewAgentForm((current) => ({ ...current, gstRate: event.target.value }))}
+                />
+              </label>
+              <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+                WHT %
+                <input
+                  className="h-10 rounded-md border border-slate-300 px-3 font-normal outline-none focus:border-harcourts-blue focus:ring-2 focus:ring-sky-100"
+                  inputMode="decimal"
+                  value={newAgentForm.withholdingTaxRate}
+                  onChange={(event) => setNewAgentForm((current) => ({ ...current, withholdingTaxRate: event.target.value }))}
+                />
+              </label>
+              <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+                Agent Split %
+                <input
+                  className="h-10 rounded-md border border-slate-300 px-3 font-normal outline-none focus:border-harcourts-blue focus:ring-2 focus:ring-sky-100"
+                  inputMode="decimal"
+                  value={newAgentForm.agentSplit}
+                  onChange={(event) => setNewAgentForm((current) => ({ ...current, agentSplit: event.target.value }))}
+                />
+              </label>
+              <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+                Company Split %
+                <input
+                  className="h-10 rounded-md border border-slate-300 px-3 font-normal outline-none focus:border-harcourts-blue focus:ring-2 focus:ring-sky-100"
+                  inputMode="decimal"
+                  value={newAgentForm.companySplit}
+                  onChange={(event) => setNewAgentForm((current) => ({ ...current, companySplit: event.target.value }))}
+                />
+              </label>
+              {newAgentError && <p className="text-sm font-medium text-red-700 sm:col-span-2">{newAgentError}</p>}
+            </div>
+            <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+              <button className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700" onClick={() => setNewAgentTargetId(null)}>Cancel</button>
+              <button className="rounded-md bg-harcourts-navy px-3 py-2 text-sm font-semibold text-white" onClick={saveNewAgent}>Add Agent</button>
             </div>
           </div>
         </div>
@@ -815,8 +942,20 @@ export default function NewCommissionPage() {
                               <tr className="border-b border-slate-200" key={`${participant.id}-agent`}>
                                 <td className="px-3 py-1.5">
                                   <div className="flex items-center gap-2">
-                                    <select className="h-9 min-w-0 flex-1" value={participant.agent.agentId} onChange={(event) => updateParticipant(participant.id, { agent: snapshotAgent(event.target.value) })}>
-                                      {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
+                                    <select
+                                      className="h-9 min-w-0 flex-1"
+                                      value={participant.agent.agentId}
+                                      onChange={(event) => {
+                                        if (event.target.value === "__new_agent__") {
+                                          openNewAgent(participant.id);
+                                          return;
+                                        }
+                                        const selected = agentOptions.find((agent) => agent.agentId === event.target.value);
+                                        if (selected) updateParticipant(participant.id, { agent: selected });
+                                      }}
+                                    >
+                                      {agentOptions.map((agent) => <option key={agent.agentId} value={agent.agentId}>{agent.agentName}</option>)}
+                                      <option value="__new_agent__">+ Add New Agent</option>
                                     </select>
                                     <button className="grid h-9 w-9 shrink-0 place-items-center border border-slate-300 text-slate-600" title={`Remove ${participant.agent.agentName}`} onClick={() => removeParticipant(participant.id)}>
                                       <Trash2 className="h-4 w-4" />
