@@ -1,8 +1,8 @@
 "use client";
 
-import { Fragment, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Download, MonitorUp, Plus, ShieldCheck, Trash2, Upload } from "lucide-react";
+import { Download, MonitorUp, Plus, Save, ShieldCheck, Trash2, Upload } from "lucide-react";
 import { agents, snapshotAgent } from "@/lib/agents";
 import { calculateCommission } from "@/lib/commission/calculate";
 import { formatMoney, formatPercent, percent } from "@/lib/commission/money";
@@ -48,6 +48,15 @@ const emptyNewAgentForm: NewAgentForm = {
   withholdingTaxRate: "20",
   agentSplit: "70",
   companySplit: "30"
+};
+
+const DRAFT_STORAGE_KEY = "harcourts-commission-calculator-draft";
+
+type SavedDraft = {
+  input: CommissionInput;
+  listingHeaderTeam: string;
+  sellingHeaderTeam: string;
+  savedAt: string;
 };
 
 function MoneyReadout({ label, value }: { label: string; value: number }) {
@@ -243,6 +252,7 @@ export default function NewCommissionPage() {
   const [newAgentTargetId, setNewAgentTargetId] = useState<string | null>(null);
   const [newAgentForm, setNewAgentForm] = useState<NewAgentForm>(emptyNewAgentForm);
   const [newAgentError, setNewAgentError] = useState("");
+  const [savedDraft, setSavedDraft] = useState<SavedDraft | null>(null);
   const cropPreviewRef = useRef<HTMLDivElement>(null);
   const result = useMemo(() => calculateCommission(input), [input]);
   const paymentByParticipantId = new Map(result.agentPayments.map((payment) => [payment.participantId, payment]));
@@ -292,6 +302,17 @@ export default function NewCommissionPage() {
     })),
     ...temporaryAgents
   ];
+
+  useEffect(() => {
+    try {
+      const storedDraft = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (!storedDraft) return;
+      const parsed = JSON.parse(storedDraft) as SavedDraft;
+      if (parsed?.input && parsed.savedAt) setSavedDraft(parsed);
+    } catch {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+  }, []);
 
   function updateInput(patch: Partial<CommissionInput>) {
     setInput((current) => ({ ...current, ...patch }));
@@ -358,6 +379,35 @@ export default function NewCommissionPage() {
     setNewAgentTargetId(null);
   }
 
+  function saveDraft() {
+    const draft: SavedDraft = {
+      input: { ...input, evidence: [] },
+      listingHeaderTeam,
+      sellingHeaderTeam,
+      savedAt: new Date().toISOString()
+    };
+    window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    setSavedDraft(draft);
+  }
+
+  function restoreDraft() {
+    if (!savedDraft) return;
+    setInput({ ...savedDraft.input, evidence: [] });
+    setListingHeaderTeam(savedDraft.listingHeaderTeam ?? "");
+    setSellingHeaderTeam(savedDraft.sellingHeaderTeam ?? "");
+    const restoredManualAgents = savedDraft.input.participants
+      .map((participant) => participant.agent)
+      .filter((agent) => agent.agentId.startsWith("manual-"))
+      .filter((agent, index, allAgents) => allAgents.findIndex((item) => item.agentId === agent.agentId) === index);
+    setTemporaryAgents(restoredManualAgents);
+    setFormResetVersion((version) => version + 1);
+  }
+
+  function discardDraft() {
+    window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+    setSavedDraft(null);
+  }
+
   function clearCalculator() {
     if (!window.confirm("Clear all entered calculator details?")) return;
 
@@ -368,6 +418,7 @@ export default function NewCommissionPage() {
     setSellingHeaderTeam("");
     setEvidenceError("");
     setTemporaryAgents([]);
+    discardDraft();
     setFormResetVersion((version) => version + 1);
   }
 
@@ -520,6 +571,9 @@ export default function NewCommissionPage() {
             <h1 className="text-xl font-semibold text-harcourts-navy">New Commission</h1>
           </div>
           <div className="flex items-center gap-2">
+            <button className="inline-flex items-center gap-2 rounded-md bg-harcourts-navy px-3 py-2 text-sm font-semibold text-white" onClick={saveDraft}>
+              <Save className="h-4 w-4" /> Save Draft
+            </button>
             <button className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700" onClick={clearCalculator}>
               <Trash2 className="h-4 w-4" /> Clear Calculator
             </button>
@@ -618,6 +672,18 @@ export default function NewCommissionPage() {
               <button className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700" onClick={() => setNewAgentTargetId(null)}>Cancel</button>
               <button className="rounded-md bg-harcourts-navy px-3 py-2 text-sm font-semibold text-white" onClick={saveNewAgent}>Add Agent</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {savedDraft && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sky-200 bg-sky-50 px-6 py-3">
+          <p className="text-sm font-medium text-slate-700">
+            Saved draft from {new Intl.DateTimeFormat("en-NZ", { dateStyle: "medium", timeStyle: "short" }).format(new Date(savedDraft.savedAt))}. Evidence screenshots are not included.
+          </p>
+          <div className="flex items-center gap-2">
+            <button className="rounded-md bg-harcourts-navy px-3 py-1.5 text-sm font-semibold text-white" onClick={restoreDraft}>Restore Draft</button>
+            <button className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700" onClick={discardDraft}>Discard</button>
           </div>
         </div>
       )}
