@@ -88,6 +88,17 @@
     "commercialLeaseCompanySplit": "0"
   },
   {
+    "id": "dino-joseph",
+    "name": "Dino Joseph",
+    "active": true,
+    "withholdingTaxRate": "0.2",
+    "gstRate": "0.15",
+    "residentialAgentSplit": "0.7",
+    "residentialCompanySplit": "0.3",
+    "commercialLeaseAgentSplit": "0.7",
+    "commercialLeaseCompanySplit": "0.3"
+  },
+  {
     "id": "durgesh-ghole",
     "name": "Durgesh Ghole",
     "active": true,
@@ -218,6 +229,17 @@
     "residentialCompanySplit": "0.3",
     "commercialLeaseAgentSplit": "0.5",
     "commercialLeaseCompanySplit": "0.5"
+  },
+  {
+    "id": "sammi-huang",
+    "name": "Sammi Huang",
+    "active": true,
+    "withholdingTaxRate": "0.2",
+    "gstRate": "0.15",
+    "residentialAgentSplit": "0.7",
+    "residentialCompanySplit": "0.3",
+    "commercialLeaseAgentSplit": "0.7",
+    "commercialLeaseCompanySplit": "0.3"
   },
   {
     "id": "tamina-zhang",
